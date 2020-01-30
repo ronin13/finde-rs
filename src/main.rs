@@ -2,6 +2,7 @@
 // extern crate tantivy;
 
 use std::env;
+use std::time;
 use std::error::Error;
 use std::result::Result;
 use walkdir::WalkDir;
@@ -23,6 +24,7 @@ use std::path::PathBuf;
 
 // use std::sync::{Arc, Mutex};
 const DEF_ROOT: &str = "/tmp/yy";
+const MAX_THREAD: u32 = 5;
 // type OptStr = Option<&'static str>;
 
 
@@ -32,37 +34,39 @@ fn crawl_this(sender: Sender<PathBuf>, receiver: Receiver<PathBuf>, result: Send
         return
     }
 
-    let root = receiver.recv().unwrap().to_str().unwrap().to_string();
+    // Blocks for the first time in 1+ threads.
+    let mut root = receiver.recv().unwrap().to_str().unwrap().to_string();
 
-    for entry in WalkDir::new(&root) {
-        match entry {
-            Ok(dirent) => {
-                match dirent.metadata() {
-                    Ok(metadata) => {
-                        if metadata.is_dir() {
-                            let dirbuf = dirent.path().to_path_buf();
+    loop {
+        println!("Crawling {}", root);
+        for entry in WalkDir::new(&root).max_depth(1).into_iter().skip(1) {
+            match entry {
+                Ok(dirent) => {
+                    match dirent.metadata() {
+                        Ok(metadata) => {
+                            if metadata.is_dir() {
+                                let dirpath = dirent.path().to_path_buf().to_owned();
 
-                            let dirpath = dirbuf.to_owned();
+                                sender.send(dirpath).expect("Failed to send. Boo!");
+                                println!("{} is a directory", dirent.path().display());
+                            }  else { 
+                                let fpath = dirent.path().to_str().unwrap().to_string();
+                                println!("RESULT: {} is a file", fpath);
+                                result.send(fpath).expect("Failed to send");
+                            }
 
-                            // let crawler_arc_clone = crawler_arc.clone();
-                            // let sender = crawler_arc_clone.lock().expect("Failed");
-                            sender.send(dirpath).expect("Failed to send. Boo!");
-                            // println!("{} is a directory", dirent.path().display());
-                        }  else { 
-                            let fpath = dirent.path().to_str().unwrap().to_string();
-                            // println!("RESULT: {} is a file", fpath);
-                            result.send(fpath).expect("Failed to send");
-                        }
+                        },
+                        Err(e) => println!("Ignoring due to error {}", e),
+                    }
+                },
+                Err(err) => println!("Ignoring entry due to {}", err),
 
-                    },
-                    Err(e) => println!("Ignoring due to error {}", e),
-                }
-                // println!("Entry {}", dirent.path().display());
-            },
-            Err(err) => println!("Ignoring entry due to {}", err),
-
+            }
         }
-        // println!("{}", entry.path().display());
+        if receiver.is_empty() {
+            return
+        }
+        root = receiver.recv().unwrap().to_str().unwrap().to_string();
     }
 }
 
@@ -77,7 +81,6 @@ fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyError> {
     let index = Index::create_in_dir("/tmp/index", schema.clone())?;
 
     let mut index_writer = index.writer(50_000_000)?;
-
 
     let fpath = schema.get_field("rpath").unwrap();
 
@@ -107,28 +110,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     // let crawler_arc = Arc::new(Mutex::new(crawler));
-
-    crawler.send(PathBuf::from(root)).expect("Failed to send root");
-    loop {
-        if processor.is_empty() {
-            println!("Done crawling, exiting");
-            break;
-        }
-        let crawler = crawler.clone();
-        let processor = processor.clone();
-        let sresults = sresults.clone();
-        cthreads.push(thread::spawn(move || {
-            crawl_this(crawler, processor, sresults);
-        }));
-
-    }
-
     let ithread = thread::spawn(move || {
         build_index(rresults).unwrap();
     });
 
+
+    crawler.send(PathBuf::from(root)).expect("Failed to send root");
+
+
+    for _ in 1..=MAX_THREAD {
+        let icrawler = crawler.clone();
+        let iprocessor = processor.clone();
+        let isresults = sresults.clone();
+        cthreads.push(thread::spawn(move || {
+            crawl_this(icrawler, iprocessor, isresults);
+        }));
+    }
+
+
     for (id, c) in cthreads.into_iter().enumerate() {
-            println!("Waiting on {}", id);
+            println!("Waiting on thread {}", id);
             c.join();
     }
     drop(sresults);
