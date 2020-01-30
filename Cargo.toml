@@ -1,0 +1,12 @@
+[package]
+name = "rinder"
+version = "0.1.0"
+authors = ["Raghavendra D Prabhu <me@rdprabhu.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walkdir = "2.3.1"
+crossbeam = "0.7.3"
+tantivy = "0.11.3"
