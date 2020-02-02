@@ -3,8 +3,9 @@ mod constants;
 mod crawler;
 
 use std::env;
-use std::error::Error;
-use std::result::Result;
+// use std::error::Error;
+// use std::result::Result;
+use anyhow::{Context, Result, Error, anyhow};
 
 use std::thread;
 use crossbeam::channel::unbounded;
@@ -12,7 +13,7 @@ use crossbeam::channel::{Sender, Receiver};
 use std::path::PathBuf;
 
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let root = env::args().nth(1).unwrap_or_else(|| constants::DEFAULT_ROOT.to_string());
     let (crawler_chan, processor_chan): (Sender<PathBuf>, Receiver<PathBuf>)  = unbounded();
 
@@ -23,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         indexer::build_index(index_chan).unwrap();
     });
 
-    crawler_chan.send(PathBuf::from(root)).expect("Failed to send root");
+    crawler_chan.send(PathBuf::from(root)).context("Failed to send root")?;
 
     for _ in 1..=constants::MAX_THREAD {
         let crawler = crawler_chan.clone();
@@ -44,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     indexer_thread.join().expect("Runtime issue while waiting on indexer thread");
 
     if ! processor_chan.is_empty() {
-        return Err("Failed to crawl everything since processor is still non empty".into());
+        return Err(anyhow!("Failed to crawl everything since processor chan is still non empty"));
     }
 
     Ok(())
