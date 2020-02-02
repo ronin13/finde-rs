@@ -7,8 +7,6 @@ use std::env;
 use std::error::Error;
 use std::result::Result;
 
-
-
 use std::thread;
 use crossbeam::channel::unbounded;
 use crossbeam::channel::{Sender, Receiver};
@@ -17,10 +15,6 @@ use crossbeam::channel::{Sender, Receiver};
 use std::path::PathBuf;
 
 // use std::sync::{Arc, Mutex};
-
-// type OptStr = Option<&'static str>;
-
-
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -52,11 +46,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for (id, c) in cthreads.into_iter().enumerate() {
             println!("Waiting on thread {}", id);
-            c.join();
+            c.join().expect("Runtime issue while waiting on crawler threads");
     }
     drop(sresults);
 
-    ithread.join();
+    ithread.join().expect("Runtime issue while waiting on indexer thread");
     // println!("Hello, world! {}", root);
 
     Ok(())
