@@ -29,7 +29,7 @@ pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyErro
     index_writer.commit()?;
     println!("Index created in {:?}", index_dir);
 
-    let num_segments:usize = index.load_metas().unwrap().segments.len();
+    let num_segments:usize = index.load_metas()?.segments.len();
 
     println!("Index has {} segments", num_segments);
     Ok(())
