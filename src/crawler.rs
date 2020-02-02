@@ -23,8 +23,6 @@ pub fn crawl_this(sender: Sender<PathBuf>, receiver: Receiver<PathBuf>, result: 
         println!("Empty channel for {}, exiting early!", whoami);
         return
     }
-
-    // Blocks for the first time in 1+ threads.
     println!("Crawling in thread {}", whoami);
 
 
