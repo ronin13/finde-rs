@@ -25,7 +25,8 @@ fn main() -> Result<()> {
         indexer::build_index(index_chan).unwrap();
     });
 
-    crawler_chan.send(PathBuf::from(root)).context("Failed to send root")?;
+    // Initial seed.
+    crawler_chan.send(PathBuf::from(root)).context("Failed to send root path")?;
 
     for _ in 1..=constants::MAX_THREAD {
         let crawler = crawler_chan.clone();
