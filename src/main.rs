@@ -1,57 +1,51 @@
-mod index;
+mod indexer;
 mod constants;
 mod crawler;
 
 use std::env;
-// use std::time;
 use std::error::Error;
 use std::result::Result;
 
 use std::thread;
 use crossbeam::channel::unbounded;
 use crossbeam::channel::{Sender, Receiver};
-// use std::fs::FileType;
-// use std::option::Option;
 use std::path::PathBuf;
-
-// use std::sync::{Arc, Mutex};
 
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let root = env::args().nth(1).unwrap_or_else(|| constants::DEF_ROOT.to_string());
-    let (crawler, processor): (Sender<PathBuf>, Receiver<PathBuf>)  = unbounded();
+    let root = env::args().nth(1).unwrap_or_else(|| constants::DEFAULT_ROOT.to_string());
+    let (crawler_chan, processor_chan): (Sender<PathBuf>, Receiver<PathBuf>)  = unbounded();
 
-    let (sresults, rresults):(Sender<String>, Receiver<String>) = unbounded();
-    let mut cthreads = vec![];
+    let (file_chan, index_chan):(Sender<String>, Receiver<String>) = unbounded();
+    let mut crawler_threads = vec![];
 
-
-    // let crawler_arc = Arc::new(Mutex::new(crawler));
-    let ithread = thread::spawn(move || {
-        index::build_index(rresults).unwrap();
+    let indexer_thread = thread::spawn(move || {
+        indexer::build_index(index_chan).unwrap();
     });
 
-
-    crawler.send(PathBuf::from(root)).expect("Failed to send root");
-
+    crawler_chan.send(PathBuf::from(root)).expect("Failed to send root");
 
     for _ in 1..=constants::MAX_THREAD {
-        let icrawler = crawler.clone();
-        let iprocessor = processor.clone();
-        let isresults = sresults.clone();
-        cthreads.push(thread::spawn(move || {
-            crawler::crawl_this(icrawler, iprocessor, isresults);
+        let crawler = crawler_chan.clone();
+        let processor = processor_chan.clone();
+        let results = file_chan.clone();
+        crawler_threads.push(thread::spawn(move || {
+            crawler::crawl_this(crawler, processor, results);
         }));
     }
 
 
-    for (id, c) in cthreads.into_iter().enumerate() {
+    for (id, c) in crawler_threads.into_iter().enumerate() {
             println!("Waiting on thread {}", id);
             c.join().expect("Runtime issue while waiting on crawler threads");
     }
-    drop(sresults);
+    drop(file_chan);
 
-    ithread.join().expect("Runtime issue while waiting on indexer thread");
-    // println!("Hello, world! {}", root);
+    indexer_thread.join().expect("Runtime issue while waiting on indexer thread");
+
+    if ! processor_chan.is_empty() {
+        return Err("Failed to crawl everything since processor is still non empty".into());
+    }
 
     Ok(())
 }
