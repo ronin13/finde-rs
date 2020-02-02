@@ -9,6 +9,7 @@ use crate::constants::CHAN_TIMEOUT_S;
 fn root_from_channel(receiver: &Receiver<PathBuf>) -> Option<String> {
     select! {
         recv(receiver) -> msg => {
+            // TODO: Fix this for more graceful handling of pathbuf to string
             Some(msg.unwrap().to_str().unwrap().to_string())
         },
         default(Duration::from_secs(CHAN_TIMEOUT_S)) => None,
