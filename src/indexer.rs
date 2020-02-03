@@ -2,10 +2,11 @@ use crossbeam::channel::Receiver;
 use tantivy::schema::*;
 use tantivy::{doc,Index};
 use crate::constants::INDEX_DIR;
+use log::info;
 
 pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyError> {
 
-    println!("Starting indexer");
+    info!("Starting indexer");
     let index_dir = INDEX_DIR;
     let mut schema_builder = Schema::builder();
     schema_builder.add_text_field("full_file_path", TEXT | STORED);
@@ -18,7 +19,6 @@ pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyErro
 
     let fpath = schema.get_field("full_file_path").unwrap();
 
-
     for file_path in results.iter() {
         index_writer.add_document(doc!(
             fpath =>  file_path,
@@ -27,11 +27,11 @@ pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyErro
     }
 
     index_writer.commit()?;
-    println!("Index created in {:?}", index_dir);
+    info!("Index created in {:?}", index_dir);
 
     let num_segments:usize = index.load_metas()?.segments.len();
 
-    println!("Index has {} segments", num_segments);
+    info!("Index has {} segments", num_segments);
     Ok(())
 
 }
