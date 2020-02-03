@@ -5,35 +5,44 @@ use crossbeam::channel::{Sender, Receiver};
 use std::path::PathBuf;
 use std::thread;
 use crate::constants::CHAN_TIMEOUT_S;
+use anyhow::{Result, anyhow};
 
-fn root_from_channel(receiver: &Receiver<PathBuf>) -> Option<String> {
-    select! {
-        recv(receiver) -> msg => {
-            // TODO: Fix this for more graceful handling of pathbuf to string
-            Some(msg.unwrap().to_str().unwrap().to_string())
-        },
-        default(Duration::from_secs(CHAN_TIMEOUT_S)) => None,
+
+fn pathbuf_to_string(pbuf: PathBuf) -> Result<String> {
+    let path_to_str = pbuf.to_str();
+    match path_to_str {
+        Some(pstr) => Ok(pstr.to_string()),
+        None => Err(anyhow!("Failed to decode to String")),
     }
 }
 
-pub fn crawl_this(sender: Sender<PathBuf>, receiver: Receiver<PathBuf>, result: Sender<String>) {
+fn root_from_channel(receiver: &Receiver<PathBuf>) -> Result<String> {
+    select! {
+        recv(receiver) -> msg => {
+            let message = msg?;
+            pathbuf_to_string(message)
+        },
+        default(Duration::from_secs(CHAN_TIMEOUT_S)) => Ok(String::new()),
+    }
+}
+
+pub fn crawl_this(sender: Sender<PathBuf>, receiver: Receiver<PathBuf>, result: Sender<String>) -> Result<()> {
 
     let mut root:String;
     let whoami: String = format!("{:?}", thread::current().id());
     if receiver.is_empty() {
         println!("Empty channel for {}, exiting early!", whoami);
-        return
+        return Ok(())
     }
     println!("Crawling in thread {}", whoami);
 
 
     loop {
-        let some_root = root_from_channel(&receiver);
-        if some_root.is_none() {
+        root = root_from_channel(&receiver)?;
+        if root.is_empty() {
             println!("Crawling done in {}, leaving, bye!", whoami);
-            return;
+            return Ok(());
         } 
-        root = some_root.unwrap();
         // println!("{} crawling {}", whoami, root);
         for entry in WalkDir::new(&root).max_depth(1).into_iter().skip(1) {
             match entry {

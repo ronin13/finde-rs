@@ -33,14 +33,14 @@ fn main() -> Result<()> {
         let processor = processor_chan.clone();
         let results = file_chan.clone();
         crawler_threads.push(thread::spawn(move || {
-            crawler::crawl_this(crawler, processor, results);
+            crawler::crawl_this(crawler, processor, results)
         }));
     }
 
 
     for (id, c) in crawler_threads.into_iter().enumerate() {
             println!("Waiting on thread {}", id);
-            c.join().expect("Runtime issue while waiting on crawler threads");
+            let _ = c.join().expect("Runtime issue while waiting on crawler threads");
     }
     drop(file_chan);
 
