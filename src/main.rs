@@ -1,20 +1,19 @@
-mod indexer;
 mod constants;
 mod crawler;
+mod indexer;
 
-use anyhow::{Context, Result, anyhow};
-use structopt::StructOpt;
-use log::{info,debug};
-use simple_logger;
+use anyhow::{anyhow, Context, Result};
 use log::Level;
+use log::{debug, info};
+use simple_logger;
 use std::time::Duration;
+use structopt::StructOpt;
 
-use std::thread;
 use crossbeam::channel::unbounded;
-use crossbeam::channel::{Sender, Receiver};
+use crossbeam::channel::{Receiver, Sender};
 use std::path::PathBuf;
+use std::thread;
 use threadpool::ThreadPool;
-
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "finde-rs", about = "CLI finder tool")]
@@ -22,30 +21,28 @@ struct Opt {
     #[structopt(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 
-
     #[structopt(short, long, default_value = constants::DEFAULT_ROOT)]
     path: String,
-
 }
-
 
 fn main() -> Result<()> {
     simple_logger::init_with_level(Level::Info).unwrap();
     let pool = ThreadPool::new(constants::INIT_THREADS);
 
-
     let opt = Opt::from_args();
     let root = opt.path;
-    let (crawler_chan, processor_chan): (Sender<PathBuf>, Receiver<PathBuf>)  = unbounded();
+    let (crawler_chan, processor_chan): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
 
-    let (file_chan, index_chan):(Sender<String>, Receiver<String>) = unbounded();
+    let (file_chan, index_chan): (Sender<String>, Receiver<String>) = unbounded();
 
     let indexer_thread = thread::spawn(move || {
         indexer::build_index(index_chan).unwrap();
     });
 
     // Initial seed.
-    crawler_chan.send(PathBuf::from(root)).context("Failed to send root path")?;
+    crawler_chan
+        .send(PathBuf::from(root))
+        .context("Failed to send root path")?;
 
     #[allow(unused_must_use)]
     for _ in 1..=constants::INIT_THREADS {
@@ -60,7 +57,7 @@ fn main() -> Result<()> {
     let mut pool_t = pool.clone();
     let processor_t = processor_chan.clone();
     let scheduler_thread = thread::spawn(move || {
-        let mut current_threads:usize = pool_t.active_count();
+        let mut current_threads: usize = pool_t.active_count();
         loop {
             if current_threads == 0 {
                 info!("No more threads to schedule, I am done. Bye! ");
@@ -84,12 +81,18 @@ fn main() -> Result<()> {
     info!("Waiting on upto {} crawler threads", constants::MAX_THREADS);
     pool.join();
     drop(file_chan);
-    scheduler_thread.join().expect("Runtime issue with scheduler thread join");
+    scheduler_thread
+        .join()
+        .expect("Runtime issue with scheduler thread join");
 
-    indexer_thread.join().expect("Runtime issue while waiting on indexer thread");
+    indexer_thread
+        .join()
+        .expect("Runtime issue while waiting on indexer thread");
 
-    if ! processor_chan.is_empty() {
-        return Err(anyhow!("Failed to crawl everything since processor chan is still non empty"));
+    if !processor_chan.is_empty() {
+        return Err(anyhow!(
+            "Failed to crawl everything since processor chan is still non empty"
+        ));
     }
 
     Ok(())
