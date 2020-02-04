@@ -44,13 +44,12 @@ fn main() -> Result<()> {
         .send(PathBuf::from(root))
         .context("Failed to send root path")?;
 
-    #[allow(unused_must_use)]
     for _ in 1..=constants::INIT_THREADS {
         let crawler = crawler_chan.clone();
         let processor = processor_chan.clone();
         let results = file_chan.clone();
         pool.execute(move || {
-            crawler::crawl_this(crawler, processor, results);
+            crawler::crawl_this(crawler, processor, results).expect("Thread failed");
         });
     }
 

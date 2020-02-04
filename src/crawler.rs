@@ -41,26 +41,26 @@ pub fn crawl_this(
             info!("Crawling done in {}, leaving, bye!", whoami);
             return Ok(());
         }
+        let mut filevec: Vec<String> = vec![];
+
         trace!("{} crawling {}", whoami, root);
         for entry in WalkDir::new(&root).max_depth(1).into_iter().skip(1) {
             match entry {
                 Ok(dirent) => match dirent.metadata() {
                     Ok(metadata) => {
                         if metadata.is_dir() {
-                            let dirpath = dirent.path().to_path_buf().to_owned();
-
-                            sender.send(dirpath).expect("Failed to send. Boo!");
-                            trace!("{} is a directory", dirent.path().display());
+                            sender.send(dirent.path().to_path_buf().to_owned()).expect("Failed to send. Boo!");
                         } else {
-                            let fpath = dirent.path().to_str().unwrap().to_string();
-                            trace!("RESULT: {} is a file", fpath);
-                            result.send(fpath).expect("Failed to send");
+                            filevec.push(dirent.path().to_str().unwrap().to_string());
                         }
                     }
                     Err(e) => warn!("Ignoring due to error {}", e),
                 },
                 Err(err) => warn!("Ignoring entry due to {}", err),
             }
+        }
+        for fil in filevec.into_iter() {
+            result.send(fil)?;
         }
     }
 }
