@@ -49,7 +49,9 @@ pub fn crawl_this(
                 Ok(dirent) => match dirent.metadata() {
                     Ok(metadata) => {
                         if metadata.is_dir() {
-                            sender.send(dirent.path().to_path_buf().to_owned()).expect("Failed to send. Boo!");
+                            sender
+                                .send(dirent.path().to_path_buf().to_owned())
+                                .expect("Failed to send. Boo!");
                         } else {
                             filevec.push(dirent.path().to_str().unwrap().to_string());
                         }
