@@ -1,11 +1,11 @@
-use std::thread;
 use crate::constants;
 use crossbeam::channel::Receiver;
-use threadpool::ThreadPool;
-use std::path::PathBuf;
 use log::{debug, info};
-use std::time::Duration;
 use std::cmp::max;
+use std::path::PathBuf;
+use std::thread;
+use std::time::Duration;
+use threadpool::ThreadPool;
 
 pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHandle<()> {
     let scheduler_thread = thread::spawn(move || {
@@ -17,7 +17,7 @@ pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHa
             }
             let len_of_processor = processor.len();
             if len_of_processor > constants::THROTTLE_WMARK {
-                current_threads =  max(current_threads+1, constants::MAX_THREADS);
+                current_threads = max(current_threads + 1, constants::MAX_THREADS);
                 info!("Increasing threads to {}", current_threads);
                 pool.set_num_threads(current_threads);
             } else {

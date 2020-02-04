@@ -4,8 +4,8 @@ mod indexer;
 mod scheduler;
 
 use anyhow::{anyhow, Context, Result};
+use log::info;
 use log::Level;
-use log::{info};
 use simple_logger;
 use structopt::StructOpt;
 
@@ -23,7 +23,6 @@ struct Opt {
 
     #[structopt(short, long, default_value = constants::DEFAULT_ROOT)]
     path: String,
-
 }
 
 fn main() -> Result<()> {
