@@ -1,12 +1,12 @@
 mod constants;
 mod crawler;
 mod indexer;
+mod scheduler;
 
 use anyhow::{anyhow, Context, Result};
 use log::Level;
-use log::{debug, info};
+use log::{info};
 use simple_logger;
-use std::time::Duration;
 use structopt::StructOpt;
 
 use crossbeam::channel::unbounded;
@@ -23,6 +23,7 @@ struct Opt {
 
     #[structopt(short, long, default_value = constants::DEFAULT_ROOT)]
     path: String,
+
 }
 
 fn main() -> Result<()> {
@@ -54,29 +55,10 @@ fn main() -> Result<()> {
         });
     }
 
-    let mut pool_t = pool.clone();
+    // let mut pool_t = pool.clone();
+    let pool_t = pool.clone();
     let processor_t = processor_chan.clone();
-    let scheduler_thread = thread::spawn(move || {
-        let mut current_threads: usize = pool_t.active_count();
-        loop {
-            if current_threads == 0 {
-                info!("No more threads to schedule, I am done. Bye! ");
-                break;
-            }
-            let len_of_processor = processor_t.len();
-            if len_of_processor > constants::THROTTLE_WMARK {
-                current_threads += 1;
-                current_threads %= constants::MAX_THREADS;
-                info!("Increasing threads to {}", current_threads);
-                pool_t.set_num_threads(current_threads);
-            } else {
-                info!("Current threads {}", current_threads);
-            }
-            debug!("Sleeping before runtime eval");
-            thread::sleep(Duration::from_secs(constants::SCHED_SLEEP_S));
-            current_threads = pool_t.active_count();
-        }
-    });
+    let scheduler_thread = scheduler::run(pool_t, processor_t);
 
     info!("Waiting on upto {} crawler threads", constants::MAX_THREADS);
     pool.join();
