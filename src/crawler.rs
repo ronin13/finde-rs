@@ -26,6 +26,10 @@ fn root_from_channel(receiver: &Receiver<PathBuf>) -> Result<String> {
     }
 }
 
+/// Reads from receiver channel the paths to crawl and
+/// -> sends directory paths to sender channel.
+/// -> sends file paths to indexer on result channel
+/// Runs in a threadpool.
 pub fn crawl_this(
     sender: Sender<PathBuf>,
     receiver: Receiver<PathBuf>,

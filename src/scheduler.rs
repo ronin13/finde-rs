@@ -7,6 +7,10 @@ use std::thread;
 use std::time::Duration;
 use threadpool::ThreadPool;
 
+/// We implement a scheduler here which dynamically adjusts the threadpool
+/// in accordance with size of the request queue.
+/// Scheduler also ensures threads do not exceed the ```constants::THROTTLE_WMARK```.
+/// It also sleeps for ``` constants::SCHED_SLEEP_S``` seconds before re-evaluating.
 pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHandle<()> {
     let scheduler_thread = thread::spawn(move || {
         let mut current_threads: usize = pool.active_count();

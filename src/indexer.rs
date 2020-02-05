@@ -4,6 +4,9 @@ use log::info;
 use tantivy::schema::*;
 use tantivy::{doc, Index};
 
+/// The tantivy index builder which reads fully qualified
+/// file paths from results channel and commits
+/// them to index.
 pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyError> {
     info!("Starting indexer");
     let index_dir = INDEX_DIR;

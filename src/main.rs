@@ -25,11 +25,13 @@ struct Opt {
     path: String,
 }
 
+/// Entry point of the finde-rs.
+/// Initializes channels, logging and threadpools.
 fn main() -> Result<()> {
+    let opt = Opt::from_args();
     simple_logger::init_with_level(Level::Info).unwrap();
     let pool = ThreadPool::new(constants::INIT_THREADS);
 
-    let opt = Opt::from_args();
     let root = opt.path;
     let (crawler_chan, processor_chan): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
 
