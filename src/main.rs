@@ -6,7 +6,7 @@ mod scheduler;
 use anyhow::{anyhow, Context, Result};
 use log::info;
 use log::Level;
-use simple_logger;
+// use simple_logger;
 use structopt::StructOpt;
 
 use crossbeam::channel::unbounded;

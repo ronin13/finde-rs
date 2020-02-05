@@ -12,7 +12,7 @@ use threadpool::ThreadPool;
 /// Scheduler also ensures threads do not exceed the ```constants::THROTTLE_WMARK```.
 /// It also sleeps for ``` constants::SCHED_SLEEP_S``` seconds before re-evaluating.
 pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHandle<()> {
-    let scheduler_thread = thread::spawn(move || {
+    thread::spawn(move || {
         let mut current_threads: usize = pool.active_count();
         loop {
             if current_threads == 0 {
@@ -31,6 +31,5 @@ pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHa
             thread::sleep(Duration::from_secs(constants::SCHED_SLEEP_S));
             current_threads = pool.active_count();
         }
-    });
-    return scheduler_thread;
+    })
 }

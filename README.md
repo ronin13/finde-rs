@@ -1,6 +1,10 @@
 [![Build Status](https://travis-ci.org/ronin13/finde-rs.svg?branch=master)](https://travis-ci.org/ronin13/finde-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![dependency status](https://deps.rs/repo/github/ronin13/finde-rs/status.svg)](https://deps.rs/repo/github/ronin13/finde-rs)
+[![Cargo](https://img.shields.io/crates/v/finde-rs.svg)](https://crates.io/crates/finde-rs)
+[![](https://docs.rs/finde-rs/badge.svg)](https://docs.rs/finde-rs)
+
+
 
 finde-rs
 --------
