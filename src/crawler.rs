@@ -16,13 +16,13 @@ fn pathbuf_to_string(pbuf: PathBuf) -> Result<String> {
     }
 }
 
-fn root_from_channel(receiver: &Receiver<PathBuf>) -> Result<String> {
+fn root_from_channel(receiver: &Receiver<PathBuf>, timeout: u64) -> Result<String> {
     select! {
         recv(receiver) -> msg => {
             let message = msg?;
             pathbuf_to_string(message)
         },
-        default(Duration::from_secs(CHAN_TIMEOUT_S)) => Ok(String::new()),
+        default(Duration::from_secs(timeout)) => Ok(String::new()),
     }
 }
 
@@ -40,7 +40,7 @@ pub fn crawl_this(
     debug!("Crawling in thread {}", whoami);
 
     loop {
-        root = root_from_channel(&receiver)?;
+        root = root_from_channel(&receiver, CHAN_TIMEOUT_S)?;
         if root.is_empty() {
             info!("Crawling done in {}, leaving, bye!", whoami);
             return Ok(());
@@ -68,5 +68,22 @@ pub fn crawl_this(
         for fil in filevec.into_iter() {
             result.send(fil)?;
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::crawler;
+    use crossbeam::channel::{unbounded, Receiver, Sender};
+    use std::path::PathBuf;
+
+    #[should_panic]
+    #[test]
+    fn test_root_from_channel() {
+        let (_, empty_receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+
+        let _ = crawler::root_from_channel(&empty_receiver, 0).expect("Failed to read");
+        ()
     }
 }
