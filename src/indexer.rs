@@ -21,12 +21,14 @@ pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyErro
 
     let fpath = schema.get_field("full_file_path").unwrap();
 
+    info!("Iterating over results");
     for file_path in results.iter() {
         index_writer.add_document(doc!(
             fpath =>  file_path,
         ));
     }
 
+    info!("Commiting the index");
     index_writer.commit()?;
     info!("Index created in {:?}", index_dir);
 

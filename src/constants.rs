@@ -6,7 +6,7 @@ pub const INIT_THREADS: usize = 3;
 
 /// Maximum threads in threadpool.
 
-pub const MAX_THREADS: usize = 7;
+pub const MAX_THREADS: usize = 14;
 
 /// The watermark beyond which scheduler starts
 /// scaling up the threadpool upto
@@ -15,7 +15,7 @@ pub const THROTTLE_WMARK: usize = 10;
 
 /// Duration between threadpool evals
 /// by scheduler.
-pub const SCHED_SLEEP_S: u64 = 5;
+pub const SCHED_SLEEP_S: u64 = 1;
 
 /// Timeout in seconds for the amount of time
 /// each thread in pool wait for any directory
