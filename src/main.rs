@@ -21,7 +21,6 @@ struct Opt {
 }
 
 /// Entry point of the finde-rs.
-/// Initializes channels, logging and threadpools.
 fn main() -> Result<()> {
     let opt = Opt::from_args();
     simple_logger::init_with_level(Level::Info).unwrap();

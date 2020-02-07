@@ -1,11 +1,11 @@
 use crate::constants;
+use crossbeam::channel::Receiver;
 use log::{debug, info};
+use partial_application::partial;
+use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 use threadpool::ThreadPool;
-use crossbeam::channel::Receiver;
-use std::path::PathBuf;
-use partial_application::partial;
 
 enum Scale {
     UP,
@@ -14,7 +14,7 @@ enum Scale {
 
 fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scale) -> usize {
     match direction {
-        Scale::UP =>  {
+        Scale::UP => {
             if current + 1 > upper {
                 upper
             } else {
@@ -35,10 +35,14 @@ fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scal
 /// in accordance with size of the request queue.
 /// Scheduler also ensures threads do not exceed the ```constants::THROTTLE_WMARK```.
 /// It also sleeps for ``` constants::SCHED_SLEEP_S``` seconds before re-evaluating.
-pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHandle<()> {
+pub fn run<T>(mut pool: ThreadPool, processor: Receiver<T>) -> thread::JoinHandle<()>
+where
+    T: FromStr + std::marker::Send + 'static,
+{
     thread::spawn(move || {
         let mut current_threads: usize = pool.active_count();
-        let current_scaler = partial!(scale_with_bounds => constants::MAX_THREADS, constants::INIT_THREADS, _, _);
+        let current_scaler =
+            partial!(scale_with_bounds => constants::MAX_THREADS, constants::INIT_THREADS, _, _);
         loop {
             if pool.active_count() == 0 {
                 info!("No more threads to schedule, I am done. Bye! ");
@@ -47,11 +51,17 @@ pub fn run(mut pool: ThreadPool, processor: Receiver<PathBuf>) -> thread::JoinHa
             let len_of_processor = processor.len();
             if len_of_processor > constants::THROTTLE_WMARK {
                 current_threads = current_scaler(current_threads, Scale::UP);
-                info!("Increasing threads to {}, length of work queue {}", current_threads, len_of_processor);
+                info!(
+                    "Increasing threads to {}, length of work queue {}",
+                    current_threads, len_of_processor
+                );
                 pool.set_num_threads(current_threads);
             } else {
-               current_threads = current_scaler(current_threads, Scale::DOWN);
-               info!("Decreasing threads to {}, length of work queue {}", current_threads, len_of_processor);
+                current_threads = current_scaler(current_threads, Scale::DOWN);
+                info!(
+                    "Decreasing threads to {}, length of work queue {}",
+                    current_threads, len_of_processor
+                );
             }
             debug!("Sleeping before runtime eval");
             thread::sleep(Duration::from_secs(constants::SCHED_SLEEP_S));

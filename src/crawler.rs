@@ -3,6 +3,7 @@ use crate::indexer;
 use crate::scheduler;
 use anyhow::{anyhow, Context, Result};
 use crossbeam::channel::select;
+// use crossbeam::channel::Select;
 use crossbeam::channel::unbounded;
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, info, trace, warn};
@@ -99,6 +100,17 @@ impl FileCrawler {
     }
 
     fn root_from_channel(receiver: &Receiver<PathBuf>, timeout: u64) -> Result<String> {
+        // let mut sel = Select::new();
+        // let _ = sel.recv(receiver);
+        // let oper = sel.select_timeout(Duration::from_secs(timeout));
+        // match oper {
+        //     Err(_) => Ok(String::new()),
+        //     Ok(oper) => {
+        //         let message = oper.recv(receiver)?;
+        //         FileCrawler::pathbuf_to_string(message)
+        //     }
+        // }
+
         select! {
             recv(receiver) -> msg => {
                 let message = msg?;
