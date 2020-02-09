@@ -99,7 +99,7 @@ impl FileCrawler {
         }
     }
 
-    fn root_from_channel(receiver: &Receiver<PathBuf>, timeout: u64) -> Result<String> {
+    fn root_from_channel(receiver: &Receiver<PathBuf>, timeout: u64) -> Result<Option<String>> {
         // let mut sel = Select::new();
         // let _ = sel.recv(receiver);
         // let oper = sel.select_timeout(Duration::from_secs(timeout));
@@ -114,9 +114,11 @@ impl FileCrawler {
         select! {
             recv(receiver) -> msg => {
                 let message = msg?;
-                FileCrawler::pathbuf_to_string(message)
+                let res = FileCrawler::pathbuf_to_string(message)?;
+                Ok(Some(res))
+
             },
-            default(Duration::from_secs(timeout)) => Ok(String::new()),
+            default(Duration::from_secs(timeout)) => Ok(None),
         }
     }
 
@@ -134,11 +136,12 @@ impl FileCrawler {
         debug!("Crawling in thread {}", whoami);
 
         loop {
-            root = FileCrawler::root_from_channel(&receiver, CHAN_TIMEOUT_S)?;
-            if root.is_empty() {
+            let _root = FileCrawler::root_from_channel(&receiver, CHAN_TIMEOUT_S)?;
+            if _root.is_none() {
                 info!("Crawling done in {}, leaving, bye!", whoami);
                 return Ok(());
             }
+            root = _root.unwrap();
             let mut filevec: Vec<String> = vec![];
 
             trace!("{} crawling {}", whoami, root);
