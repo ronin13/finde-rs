@@ -1,5 +1,6 @@
 mod constants;
 mod crawler;
+mod haslen;
 mod indexer;
 mod scheduler;
 

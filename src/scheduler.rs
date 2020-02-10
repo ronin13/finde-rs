@@ -1,8 +1,7 @@
 use crate::constants;
-use crossbeam::channel::Receiver;
+use crate::haslen::HasLen;
 use log::{debug, info};
 use partial_application::partial;
-use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 use threadpool::ThreadPool;
@@ -35,10 +34,7 @@ fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scal
 /// in accordance with size of the request queue.
 /// Scheduler also ensures threads do not exceed the ```constants::THROTTLE_WMARK```.
 /// It also sleeps for ``` constants::SCHED_SLEEP_S``` seconds before re-evaluating.
-pub fn run<T>(mut pool: ThreadPool, processor: Receiver<T>) -> thread::JoinHandle<()>
-where
-    T: FromStr + std::marker::Send + 'static,
-{
+pub fn run(mut pool: ThreadPool, processor: impl HasLen) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut current_threads: usize = pool.active_count();
         let current_scaler =

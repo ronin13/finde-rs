@@ -4,6 +4,7 @@ use crate::scheduler;
 use anyhow::{anyhow, Context, Result};
 use crossbeam::channel::select;
 // use crossbeam::channel::Select;
+use crate::haslen::HasLen;
 use crossbeam::channel::unbounded;
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, info, trace, warn};
@@ -16,6 +17,12 @@ use walkdir::WalkDir;
 // trait Crawler<T: FromStr> {
 // fn crawl_this(&self, sender: Sender<T>, receiver: Receiver<T>, result: Sender<String>) -> Result<()>;
 // }
+
+impl HasLen for Receiver<PathBuf> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+}
 
 #[derive(Debug)]
 pub struct FileCrawler {
