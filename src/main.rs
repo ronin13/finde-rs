@@ -24,7 +24,7 @@ struct Opt {
 /// Entry point of the finde-rs.
 fn main() -> Result<()> {
     let opt = Opt::from_args();
-    simple_logger::init_with_level(Level::Info).unwrap();
+    simple_logger::init_with_level(Level::Info)?;
 
     let crawler = FileCrawler::new(opt.path);
     crawler.run()?;

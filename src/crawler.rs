@@ -186,10 +186,22 @@ mod test {
 
     #[should_panic]
     #[test]
-    fn test_root_from_channel() {
+    fn test_root_from_disconnected_channel() {
         let (_, empty_receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
 
         let _ = FileCrawler::root_from_channel(&empty_receiver, 0).expect("Failed to read");
         ()
+    }
+
+    #[test]
+    fn test_root_from_channel() {
+        let (sender, receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+        let _ = sender.send(PathBuf::from("TESTM"));
+
+        let mut root_path = FileCrawler::root_from_channel(&receiver, 100);
+        assert_eq!(root_path.unwrap(), Some("TESTM".to_string()));
+
+        root_path = FileCrawler::root_from_channel(&receiver, 1);
+        assert_eq!(root_path.unwrap(), None)
     }
 }
