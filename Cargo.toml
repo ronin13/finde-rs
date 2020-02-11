@@ -1,6 +1,6 @@
 [package]
 name = "finde-rs"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Raghavendra D Prabhu <me@rdprabhu.com>"]
 edition = "2018"
 license = "MIT"
