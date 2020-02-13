@@ -1,15 +1,19 @@
 mod constants;
 mod crawler;
+mod fileresource;
 mod haslen;
 mod indexer;
+mod resource;
 mod scheduler;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::info;
 use log::Level;
+use std::time::Instant;
 use structopt::StructOpt;
 
-use crawler::FileCrawler;
+use crawler::Crawler;
+use fileresource::FileResource;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "finde-rs", about = "CLI finder tool")]
@@ -26,9 +30,26 @@ fn main() -> Result<()> {
     let opt = Opt::from_args();
     simple_logger::init_with_level(Level::Info)?;
 
-    let crawler = FileCrawler::new(opt.path);
-    crawler.run()?;
-    info!("Finished crawling");
+    let start = Instant::now();
+
+    match opt.path.chars().nth(0) {
+        Some('/') => {
+            info!("Crawling {}", opt.path);
+            let crawler = Crawler::new(Box::new(FileResource::new(opt.path.clone())));
+            crawler.run()?;
+        }
+        _ => {
+            return Err(anyhow!(
+                "Crawling not implemented *yet* for non filesystem paths"
+            ))
+        }
+    }
+
+    info!(
+        "Finished crawling {}, took {}s",
+        opt.path,
+        start.elapsed().as_secs()
+    );
 
     Ok(())
 }

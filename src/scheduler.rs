@@ -11,6 +11,7 @@ enum Scale {
     DOWN,
 }
 
+/// Additive Increase, Multiplicative Decrease
 fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scale) -> usize {
     match direction {
         Scale::UP => {
@@ -21,10 +22,10 @@ fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scal
             }
         }
         Scale::DOWN => {
-            if current - 1 < lower {
+            if current / 2 < lower {
                 lower
             } else {
-                current - 1
+                current / 2
             }
         }
     }
