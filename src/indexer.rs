@@ -1,4 +1,5 @@
 use crate::constants::INDEX_DIR;
+use anyhow::Result;
 use crossbeam::channel::Receiver;
 use log::info;
 use tantivy::schema::*;
@@ -19,7 +20,14 @@ pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyErro
 
     let mut index_writer = index.writer(50_000_000)?;
 
-    let fpath = schema.get_field("full_file_path").unwrap();
+    let fpath = match schema.get_field("full_file_path") {
+        Some(x) => x,
+        None => {
+            return Err(tantivy::TantivyError::SchemaError(
+                "Unable to get field".to_string(),
+            ))
+        }
+    };
 
     info!("Iterating over results");
     for file_path in results.iter() {

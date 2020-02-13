@@ -54,11 +54,14 @@ impl Resource<PathBuf> for FileResource {
 
         loop {
             let _root = FileResource::root_from_channel(&receiver, CHAN_TIMEOUT_S)?;
-            if _root.is_none() {
-                info!("Crawling done in {}, leaving, bye!", whoami);
-                return Ok(());
-            }
-            root = _root.unwrap();
+
+            root = match _root {
+                Some(x) => x,
+                None => {
+                    info!("Crawling done in {}, leaving, bye!", whoami);
+                    return Ok(());
+                }
+            };
             let mut filevec: Vec<String> = vec![];
 
             trace!("{} crawling {}", whoami, root);
