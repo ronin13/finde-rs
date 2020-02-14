@@ -96,7 +96,6 @@ impl Resource<PathBuf> for FileResource {
         }
     }
 
-    #[allow(clippy::identity_conversion)]
     fn get_path(&self) -> Result<PathBuf> {
         // Ok(PathBuf::from(self.path.clone()))
         Ok(self.path.clone())

@@ -49,7 +49,7 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         (
             thread::spawn(move || -> Result<()> {
                 match indexer::build_index(index_chan) {
-                    Ok(x) => Ok(x),
+                    Ok(_x) => Ok(()),
                     Err(e) => Err(anyhow!("Indexer failed due to {:?}", e)),
                 }
             }),
