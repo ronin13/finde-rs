@@ -11,5 +11,5 @@ pub trait Resource<T: FromStr + Send + Sync>: Send + Sync {
         receiver: Receiver<T>,
         result: Sender<String>,
     ) -> Result<()>;
-    fn to_resource(&self) -> Result<T>;
+    fn get_path(&self) -> Result<T>;
 }

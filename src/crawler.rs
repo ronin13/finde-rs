@@ -3,7 +3,7 @@ use crate::indexer;
 use crate::resource::Resource;
 use crate::scheduler;
 // use anyhow::{anyhow, Context, Result};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 // use crossbeam::channel::Select;
 use crate::haslen::HasLen;
 use crossbeam::channel::unbounded;
@@ -44,17 +44,20 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         }
     }
 
-    fn run_indexer() -> (thread::JoinHandle<()>, Sender<String>) {
+    fn run_indexer() -> (thread::JoinHandle<Result<()>>, Sender<String>) {
         let (file_chan, index_chan): (Sender<String>, Receiver<String>) = unbounded();
         (
-            thread::spawn(move || {
-                indexer::build_index(index_chan).unwrap();
+            thread::spawn(move || -> Result<()> {
+                match indexer::build_index(index_chan) {
+                    Ok(x) => Ok(x),
+                    Err(e) => Err(anyhow!("Indexer failed due to {:?}", e)),
+                }
             }),
             file_chan,
         )
     }
 
-    fn run_scheduler(&self) -> thread::JoinHandle<()> {
+    fn run_scheduler(&self) -> thread::JoinHandle<Result<()>> {
         let pool_t = self.pool.clone();
         let processor_t = self.processor_chan.clone();
         scheduler::run(pool_t, processor_t)
@@ -66,8 +69,9 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         // .send(_tmp.to_resource().unwrap())
         // .context("Failed to send root path")?;
 
-        self.crawler_chan
-            .send(self.resource.to_resource().unwrap())?;
+        let path = self.resource.get_path()?;
+
+        self.crawler_chan.send(path)?;
         //  self.crawler_chan.send(self.resource.clone())?;
 
         let (indexer_thread, file_chan) = Crawler::<T>::run_indexer();
@@ -89,13 +93,16 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         info!("Waiting on upto {} crawler threads", MAX_THREADS);
         self.pool.join();
         drop(file_chan);
+
         scheduler_thread
             .join()
-            .expect("Runtime issue with scheduler thread join");
+            .unwrap()
+            .context("Scheduler execution failed")?;
 
         indexer_thread
             .join()
-            .expect("Runtime issue while waiting on indexer thread");
+            .unwrap()
+            .context("Indexer thread failed")?;
 
         if !self.processor_chan.is_empty() {
             return Err(anyhow!(

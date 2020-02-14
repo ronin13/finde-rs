@@ -1,5 +1,6 @@
 use crate::constants;
 use crate::haslen::HasLen;
+use anyhow::Result;
 use log::{debug, info};
 use partial_application::partial;
 use std::thread;
@@ -35,8 +36,8 @@ fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scal
 /// in accordance with size of the request queue.
 /// Scheduler also ensures threads do not exceed the ```constants::THROTTLE_WMARK```.
 /// It also sleeps for ``` constants::SCHED_SLEEP_S``` seconds before re-evaluating.
-pub fn run(mut pool: ThreadPool, processor: impl HasLen) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
+pub fn run(mut pool: ThreadPool, processor: impl HasLen) -> thread::JoinHandle<Result<()>> {
+    thread::spawn(move || -> Result<()> {
         let mut current_threads: usize = pool.active_count();
         let mut required_threads;
         let mut pool_size;
@@ -71,6 +72,7 @@ pub fn run(mut pool: ThreadPool, processor: impl HasLen) -> thread::JoinHandle<(
             debug!("Sleeping before runtime eval");
             thread::sleep(Duration::from_millis(constants::SCHED_SLEEP_MS));
         }
+        Ok(())
     })
 }
 

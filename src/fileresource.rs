@@ -74,7 +74,14 @@ impl Resource<PathBuf> for FileResource {
                                     .send(dirent.path().to_path_buf().to_owned())
                                     .expect("Failed to send. Boo!");
                             } else {
-                                filevec.push(dirent.path().to_str().unwrap().to_string());
+                                let z = match dirent.path().to_str() {
+                                    Some(val) => val.to_string(),
+                                    None => {
+                                        warn!("Error during conversion of {:?}", dirent);
+                                        continue;
+                                    }
+                                };
+                                filevec.push(z);
                             }
                         }
                         Err(e) => warn!("Ignoring due to error {}", e),
@@ -90,7 +97,8 @@ impl Resource<PathBuf> for FileResource {
     }
 
     #[allow(clippy::identity_conversion)]
-    fn to_resource(&self) -> Result<PathBuf> {
-        Ok(PathBuf::from(self.path.clone()))
+    fn get_path(&self) -> Result<PathBuf> {
+        // Ok(PathBuf::from(self.path.clone()))
+        Ok(self.path.clone())
     }
 }

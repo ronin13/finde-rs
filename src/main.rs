@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 
     let start = Instant::now();
 
-    match opt.path.chars().nth(0) {
+    match opt.path.chars().next() {
         Some('/') => {
             info!("Crawling {}", opt.path);
             let crawler = Crawler::new(Box::new(FileResource::new(opt.path.clone())));
