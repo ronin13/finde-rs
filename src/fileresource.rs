@@ -5,7 +5,7 @@ use crate::resource::Resource;
 use log::{debug, info, trace, warn};
 use walkdir::WalkDir;
 // use anyhow::{anyhow, Context, Result};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use crossbeam::channel::select;
 use crossbeam::channel::{Receiver, Sender};
 use std::path::PathBuf;
@@ -72,7 +72,7 @@ impl Resource<PathBuf> for FileResource {
                             if metadata.is_dir() {
                                 sender
                                     .send(dirent.path().to_path_buf().to_owned())
-                                    .expect("Failed to send. Boo!");
+                                    .context("Failed to send")?;
                             } else {
                                 let z = match dirent.path().to_str() {
                                     Some(val) => val.to_string(),
