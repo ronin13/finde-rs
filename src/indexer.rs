@@ -1,22 +1,35 @@
-use crate::constants::{INDEX_DIR, INDEX_HEAP_SIZE};
+use crate::constants::INDEX_HEAP_SIZE;
 use anyhow::Result;
 use crossbeam::channel::Receiver;
 use log::info;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use std::fs;
 use tantivy::schema::*;
 use tantivy::{doc, Index};
 
 /// The tantivy index builder which reads fully qualified
 /// file paths from results channel and commits
 /// them to index.
-pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyError> {
+pub fn build_index(
+    results: Receiver<String>,
+    _index_dir: String,
+) -> Result<(), tantivy::TantivyError> {
     info!("Starting indexer");
-    let index_dir = INDEX_DIR;
+    let index_dir = _index_dir;
     let mut schema_builder = Schema::builder();
     schema_builder.add_text_field("full_file_path", TEXT | STORED);
 
     let schema = schema_builder.build();
 
-    let index = Index::create_in_dir(index_dir, schema.clone())?;
+    let rng = thread_rng();
+    let index_suffix = rng.sample_iter(&Alphanumeric).take(5).collect::<String>();
+
+    let index_directory = format!("{}/{}", &index_dir, index_suffix);
+    fs::create_dir(&index_directory)?;
+    info!("Index directory created in {}", &index_directory);
+
+    let index = Index::create_in_dir(&index_directory, schema.clone())?;
 
     let mut index_writer = index.writer(INDEX_HEAP_SIZE)?;
 

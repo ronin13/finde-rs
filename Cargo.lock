@@ -357,6 +357,7 @@ dependencies = [
  "log",
  "num_cpus",
  "partial_application",
+ "rand 0.7.3",
  "simple_logger",
  "structopt",
  "tantivy",

@@ -27,6 +27,10 @@ struct Opt {
     #[structopt(short, long, default_value = constants::DEFAULT_ROOT)]
     path: String,
 
+    /// Root path to crawl from
+    #[structopt(short="I", long, default_value = constants::INDEX_DIR)]
+    index_dir: String,
+
     /// Maximum number of threads that threadpool can scale upto.
     /// Defaults to number of cpus.
     #[structopt(short, long)]
@@ -52,6 +56,7 @@ fn main() -> Result<()> {
                 Box::new(FileResource::new(opt.path.clone())),
                 opt.initial_threads,
                 opt.max_threads,
+                opt.index_dir,
             );
         }
         _ => {

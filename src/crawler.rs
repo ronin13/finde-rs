@@ -28,6 +28,7 @@ pub struct Crawler<T: FromStr + Send + Sync + 'static> {
     resource: Arc<Box<dyn Resource<T>>>,
     initial_threads: usize,
     max_threads: usize,
+    index_dir: String,
 }
 
 impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
@@ -35,6 +36,7 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         _resource: Box<dyn Resource<T>>,
         _initial_threads: Option<usize>,
         _max_threads: Option<usize>,
+        _index_dir: String,
     ) -> Crawler<T> {
         let (_crawler_chan, _processor_chan): (Sender<T>, Receiver<T>) = unbounded();
         let ival = _initial_threads.unwrap_or(INIT_THREADS);
@@ -45,14 +47,15 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
             resource: Arc::new(_resource),
             initial_threads: ival,
             max_threads: _max_threads.unwrap_or_else(num_cpus::get),
+            index_dir: _index_dir,
         }
     }
 
-    fn run_indexer() -> (thread::JoinHandle<Result<()>>, Sender<String>) {
+    fn run_indexer(index_dir: String) -> (thread::JoinHandle<Result<()>>, Sender<String>) {
         let (file_chan, index_chan): (Sender<String>, Receiver<String>) = unbounded();
         (
             thread::spawn(move || -> Result<()> {
-                match indexer::build_index(index_chan) {
+                match indexer::build_index(index_chan, index_dir) {
                     Ok(_x) => Ok(()),
                     Err(e) => Err(anyhow!("Indexer failed due to {:?}", e)),
                 }
@@ -72,9 +75,9 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
 
         self.crawler_chan.send(path)?;
 
-        let (indexer_thread, file_chan) = Crawler::<T>::run_indexer();
+        let (indexer_thread, file_chan) = Crawler::<T>::run_indexer(self.index_dir.clone());
 
-        for _ in 1..=INIT_THREADS {
+        for _ in 1..=self.initial_threads {
             let crawler = self.crawler_chan.clone();
             let processor = self.processor_chan.clone();
             let results = file_chan.clone();
