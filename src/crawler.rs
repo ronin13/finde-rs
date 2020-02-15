@@ -1,23 +1,18 @@
 use crate::constants::{INIT_THREADS, MAX_THREADS};
+use crate::haslen::HasLen;
 use crate::indexer;
 use crate::resource::Resource;
 use crate::scheduler;
-// use anyhow::{anyhow, Context, Result};
 use anyhow::{anyhow, Context, Result};
-// use crossbeam::channel::Select;
-use crate::haslen::HasLen;
 use crossbeam::channel::unbounded;
 use crossbeam::channel::{Receiver, Sender};
-// use log::{info, trace, warn};
 use log::info;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::thread;
 use threadpool::ThreadPool;
-// use std::marker::Sized;
-use std::sync::Arc;
 
 use std::marker::{Send, Sync};
-// use std::string::FromStr;
 
 impl<T: Send + 'static> HasLen for Receiver<T> {
     fn len(&self) -> usize {
@@ -64,15 +59,9 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
     }
 
     pub fn run(&self) -> Result<()> {
-        // Initial seed.
-        // self.crawler_chan
-        // .send(_tmp.to_resource().unwrap())
-        // .context("Failed to send root path")?;
-
         let path = self.resource.get_path()?;
 
         self.crawler_chan.send(path)?;
-        //  self.crawler_chan.send(self.resource.clone())?;
 
         let (indexer_thread, file_chan) = Crawler::<T>::run_indexer();
 
@@ -112,32 +101,3 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         Ok(())
     }
 }
-
-// #[cfg(test)]
-// mod test {
-
-//     use crate::crawler::Crawler;
-//     use crossbeam::channel::{unbounded, Receiver, Sender};
-//     use std::path::PathBuf;
-
-//     #[should_panic]
-//     #[test]
-//     fn test_root_from_disconnected_channel() {
-//         let (_, empty_receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
-
-//         let _ = Crawler::root_from_channel(&empty_receiver, 0).expect("Failed to read");
-//         ()
-//     }
-
-//     #[test]
-//     fn test_root_from_channel() {
-//         let (sender, receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
-//         let _ = sender.send(PathBuf::from("TESTM"));
-
-//         let mut root_path = Crawler::root_from_channel(&receiver, 100);
-//         assert_eq!(root_path.unwrap(), Some("TESTM".to_string()));
-
-//         root_path = Crawler::root_from_channel(&receiver, 1);
-//         assert_eq!(root_path.unwrap(), None)
-//     }
-// }

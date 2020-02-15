@@ -28,6 +28,7 @@ struct Opt {
 /// Entry point of the finde-rs.
 fn main() -> Result<()> {
     let opt = Opt::from_args();
+    let crawler;
     simple_logger::init_with_level(Level::Info)?;
 
     let start = Instant::now();
@@ -35,8 +36,7 @@ fn main() -> Result<()> {
     match opt.path.chars().next() {
         Some('/') => {
             info!("Crawling {}", opt.path);
-            let crawler = Crawler::new(Box::new(FileResource::new(opt.path.clone())));
-            crawler.run()?;
+            crawler = Crawler::new(Box::new(FileResource::new(opt.path.clone())));
         }
         _ => {
             return Err(anyhow!(
@@ -45,6 +45,7 @@ fn main() -> Result<()> {
         }
     }
 
+    crawler.run()?;
     info!(
         "Finished crawling {}, took {}s",
         opt.path,

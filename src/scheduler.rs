@@ -12,7 +12,7 @@ enum Scale {
     DOWN,
 }
 
-/// Additive Increase, Multiplicative Decrease
+/// Additive Increase, Multiplicative Decrease (AIMD)
 fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scale) -> usize {
     match direction {
         Scale::UP => {

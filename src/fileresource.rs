@@ -65,6 +65,7 @@ impl Resource<PathBuf> for FileResource {
             let mut filevec: Vec<String> = vec![];
 
             trace!("{} crawling {}", whoami, root);
+            // We don't follow symlinks, hence no loops.
             for entry in WalkDir::new(&root).max_depth(1).into_iter().skip(1) {
                 match entry {
                     Ok(dirent) => match dirent.metadata() {
@@ -97,7 +98,35 @@ impl Resource<PathBuf> for FileResource {
     }
 
     fn get_path(&self) -> Result<PathBuf> {
-        // Ok(PathBuf::from(self.path.clone()))
         Ok(self.path.clone())
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::fileresource::FileResource;
+    use crossbeam::channel::{unbounded, Receiver, Sender};
+    use std::path::PathBuf;
+
+    #[should_panic]
+    #[test]
+    fn test_root_from_disconnected_channel() {
+        let (_, empty_receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+
+        let _ = FileResource::root_from_channel(&empty_receiver, 0).expect("Failed to read");
+        ()
+    }
+
+    #[test]
+    fn test_root_from_channel() {
+        let (sender, receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+        let _ = sender.send(PathBuf::from("TESTM"));
+
+        let mut root_path = FileResource::root_from_channel(&receiver, 100);
+        assert_eq!(root_path.unwrap(), Some("TESTM".to_string()));
+
+        root_path = FileResource::root_from_channel(&receiver, 1);
+        assert_eq!(root_path.unwrap(), None)
     }
 }
