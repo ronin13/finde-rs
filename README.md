@@ -24,6 +24,7 @@ library for threadpool support and finally, [tantivy](https://github.com/tantivy
 
 >> git clone https://github.com/ronin13/finde-rs && cd finde-rs
 >> cargo build --release
+
 >>./target/release/finde-rs --help
 finde-rs 0.1.3
 CLI finder tool
@@ -48,6 +49,9 @@ FLAGS:
             logging, `-vvv` debug, and `-vvvv` trace.
 
 OPTIONS:
+    -I, --index-dir <index-dir>
+            Root path to crawl from [default: /tmp/]
+
     -i, --initial-threads <initial-threads>
             Initial number of threads to spawn
 
