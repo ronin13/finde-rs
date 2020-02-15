@@ -1,4 +1,4 @@
-use crate::constants::{INIT_THREADS, MAX_THREADS};
+use crate::constants::INIT_THREADS;
 use crate::haslen::HasLen;
 use crate::indexer;
 use crate::resource::Resource;
@@ -26,16 +26,25 @@ pub struct Crawler<T: FromStr + Send + Sync + 'static> {
     crawler_chan: Sender<T>,
     processor_chan: Receiver<T>,
     resource: Arc<Box<dyn Resource<T>>>,
+    initial_threads: usize,
+    max_threads: usize,
 }
 
 impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
-    pub fn new(_resource: Box<dyn Resource<T>>) -> Crawler<T> {
+    pub fn new(
+        _resource: Box<dyn Resource<T>>,
+        _initial_threads: Option<usize>,
+        _max_threads: Option<usize>,
+    ) -> Crawler<T> {
         let (_crawler_chan, _processor_chan): (Sender<T>, Receiver<T>) = unbounded();
+        let ival = _initial_threads.unwrap_or(INIT_THREADS);
         Crawler {
-            pool: ThreadPool::new(INIT_THREADS),
+            pool: ThreadPool::new(ival),
             crawler_chan: _crawler_chan,
             processor_chan: _processor_chan,
             resource: Arc::new(_resource),
+            initial_threads: ival,
+            max_threads: _max_threads.unwrap_or_else(num_cpus::get),
         }
     }
 
@@ -55,7 +64,7 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
     fn run_scheduler(&self) -> thread::JoinHandle<Result<()>> {
         let pool_t = self.pool.clone();
         let processor_t = self.processor_chan.clone();
-        scheduler::run(pool_t, processor_t)
+        scheduler::run(pool_t, processor_t, self.initial_threads, self.max_threads)
     }
 
     pub fn run(&self) -> Result<()> {
@@ -79,7 +88,7 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
 
         let scheduler_thread = self.run_scheduler();
 
-        info!("Waiting on upto {} crawler threads", MAX_THREADS);
+        info!("Waiting on upto {} crawler threads", self.max_threads);
         self.pool.join();
         drop(file_chan);
 

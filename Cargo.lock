@@ -355,6 +355,7 @@ dependencies = [
  "clap-verbosity-flag",
  "crossbeam",
  "log",
+ "num_cpus",
  "partial_application",
  "simple_logger",
  "structopt",

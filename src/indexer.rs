@@ -1,4 +1,4 @@
-use crate::constants::INDEX_DIR;
+use crate::constants::{INDEX_DIR, INDEX_HEAP_SIZE};
 use anyhow::Result;
 use crossbeam::channel::Receiver;
 use log::info;
@@ -18,7 +18,7 @@ pub fn build_index(results: Receiver<String>) -> Result<(), tantivy::TantivyErro
 
     let index = Index::create_in_dir(index_dir, schema.clone())?;
 
-    let mut index_writer = index.writer(50_000_000)?;
+    let mut index_writer = index.writer(INDEX_HEAP_SIZE)?;
 
     let fpath = match schema.get_field("full_file_path") {
         Some(x) => x,

@@ -18,6 +18,46 @@ library for threadpool support and finally, [tantivy](https://github.com/tantivy
 + Indexer is a single threaded tantivy indexer which reads fully qualified file paths from channel sent by the Filecrawler's threads. It commits the index to disk once all the crawling has been done.
 
 
+##  Usage
+
+```sh
+
+>>./target/release/finde-rs --help
+finde-rs 0.1.3
+CLI finder tool
+
+USAGE:
+    finde-rs [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help
+            Prints help information
+
+    -q, --quiet
+            Pass many times for less log output
+
+    -V, --version
+            Prints version information
+
+    -v, --verbose
+            Pass many times for more log output
+
+            By default, it'll only report errors. Passing `-v` one time also prints warnings, `-vv` enables info
+            logging, `-vvv` debug, and `-vvvv` trace.
+
+OPTIONS:
+    -i, --initial-threads <initial-threads>
+            Initial number of threads to spawn
+
+    -m, --max-threads <max-threads>
+            Maximum number of threads that threadpool can scale upto. Defaults to number of cpus
+
+    -p, --path <path>
+            Root path to crawl from [default: /usr/lib]
+
+
+```
+
 ## Running
 
 ```sh

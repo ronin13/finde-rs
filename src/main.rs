@@ -23,8 +23,18 @@ struct Opt {
     #[structopt(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 
+    /// Root path to crawl from
     #[structopt(short, long, default_value = constants::DEFAULT_ROOT)]
     path: String,
+
+    /// Maximum number of threads that threadpool can scale upto.
+    /// Defaults to number of cpus.
+    #[structopt(short, long)]
+    max_threads: Option<usize>,
+
+    /// Initial number of threads to spawn.
+    #[structopt(short, long)]
+    initial_threads: Option<usize>,
 }
 
 /// Entry point of the finde-rs.
@@ -38,7 +48,11 @@ fn main() -> Result<()> {
     match opt.path.chars().next() {
         Some('/') => {
             info!("Crawling {}", opt.path);
-            crawler = Crawler::new(Box::new(FileResource::new(opt.path.clone())));
+            crawler = Crawler::new(
+                Box::new(FileResource::new(opt.path.clone())),
+                opt.initial_threads,
+                opt.max_threads,
+            );
         }
         _ => {
             return Err(anyhow!(

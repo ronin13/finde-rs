@@ -36,7 +36,12 @@ fn scale_with_bounds(upper: usize, lower: usize, current: usize, direction: Scal
 /// in accordance with size of the request queue.
 /// Scheduler also ensures threads do not exceed the ```constants::THROTTLE_WMARK```.
 /// It also sleeps for ``` constants::SCHED_SLEEP_S``` seconds before re-evaluating.
-pub fn run(mut pool: ThreadPool, processor: impl HasLen) -> thread::JoinHandle<Result<()>> {
+pub fn run(
+    mut pool: ThreadPool,
+    processor: impl HasLen,
+    initial_threads: usize,
+    max_threads: usize,
+) -> thread::JoinHandle<Result<()>> {
     thread::spawn(move || -> Result<()> {
         let mut current_threads: usize = pool.active_count();
         let mut required_threads;
@@ -44,8 +49,7 @@ pub fn run(mut pool: ThreadPool, processor: impl HasLen) -> thread::JoinHandle<R
         let mut len_of_processor;
 
         // Curried version of scaler with bounds applied.
-        let current_scaler =
-            partial!(scale_with_bounds => constants::MAX_THREADS, constants::INIT_THREADS, _, _);
+        let current_scaler = partial!(scale_with_bounds => max_threads, initial_threads, _, _);
 
         loop {
             pool_size = pool.active_count();

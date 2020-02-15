@@ -4,13 +4,8 @@ pub const DEFAULT_ROOT: &str = "/usr/lib";
 /// Initial number of threads in the threadpool.
 pub const INIT_THREADS: usize = 3;
 
-/// Maximum threads in threadpool.
-
-pub const MAX_THREADS: usize = 14;
-
 /// The watermark beyond which scheduler starts
-/// scaling up the threadpool upto
-/// ``` MAX_THREADS ```.
+/// scaling up the threadpool upto num cpus threads.
 pub const THROTTLE_WMARK: usize = 10;
 
 /// Duration between threadpool evals
@@ -26,3 +21,5 @@ pub const CHAN_TIMEOUT_S: u64 = 10;
 /// for use by tantivy.
 /// Must exist and be empty!
 pub const INDEX_DIR: &str = "/tmp/index";
+
+pub const INDEX_HEAP_SIZE: usize = 50_000_000;
