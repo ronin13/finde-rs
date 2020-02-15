@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod constants;
 mod crawler;
 mod fileresource;
