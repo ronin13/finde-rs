@@ -39,6 +39,9 @@ struct Opt {
     /// Initial number of threads to spawn.
     #[structopt(short, long)]
     initial_threads: Option<usize>,
+
+    #[structopt(short = "H", long)]
+    indexer_heap_size: Option<usize>,
 }
 
 /// Entry point of the finde-rs.
@@ -57,6 +60,7 @@ fn main() -> Result<()> {
                 opt.initial_threads,
                 opt.max_threads,
                 opt.index_dir,
+                opt.indexer_heap_size,
             );
         }
         _ => {

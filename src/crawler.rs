@@ -1,4 +1,4 @@
-use crate::constants::{CHAN_TIMEOUT_S, INIT_THREADS};
+use crate::constants::{CHAN_TIMEOUT_S, INDEX_HEAP_SIZE, INIT_THREADS};
 use crate::haslen::HasLen;
 
 use crate::indexer;
@@ -34,6 +34,7 @@ pub struct Crawler<T: FromStr + Send + Sync + std::fmt::Debug + 'static> {
     initial_threads: usize,
     max_threads: usize,
     index_dir: String,
+    indexer_heap_size: usize,
 }
 
 impl<T: FromStr + Send + Sync + std::fmt::Debug + 'static> Crawler<T> {
@@ -42,6 +43,7 @@ impl<T: FromStr + Send + Sync + std::fmt::Debug + 'static> Crawler<T> {
         _initial_threads: Option<usize>,
         _max_threads: Option<usize>,
         _index_dir: String,
+        _indexer_heap_size: Option<usize>,
     ) -> Crawler<T> {
         let (_crawler_chan, _processor_chan): (Sender<T>, Receiver<T>) = unbounded();
         let ival = _initial_threads.unwrap_or(INIT_THREADS);
@@ -53,14 +55,18 @@ impl<T: FromStr + Send + Sync + std::fmt::Debug + 'static> Crawler<T> {
             initial_threads: ival,
             max_threads: _max_threads.unwrap_or_else(num_cpus::get),
             index_dir: _index_dir,
+            indexer_heap_size: _indexer_heap_size.unwrap_or(INDEX_HEAP_SIZE),
         }
     }
 
-    fn run_indexer(index_dir: String) -> (thread::JoinHandle<Result<()>>, Sender<String>) {
+    fn run_indexer(
+        index_dir: String,
+        heap_size: usize,
+    ) -> (thread::JoinHandle<Result<()>>, Sender<String>) {
         let (file_chan, index_chan): (Sender<String>, Receiver<String>) = unbounded();
         (
             thread::spawn(move || -> Result<()> {
-                match indexer::build_index(index_chan, index_dir) {
+                match indexer::build_index(index_chan, index_dir, heap_size) {
                     Ok(_x) => Ok(()),
                     Err(e) => Err(anyhow!("Indexer failed due to {:?}", e)),
                 }
@@ -130,7 +136,8 @@ impl<T: FromStr + Send + Sync + std::fmt::Debug + 'static> Crawler<T> {
 
         self.crawler_chan.send(path)?;
 
-        let (indexer_thread, file_chan) = Crawler::<T>::run_indexer(self.index_dir.clone());
+        let (indexer_thread, file_chan) =
+            Crawler::<T>::run_indexer(self.index_dir.clone(), self.indexer_heap_size);
 
         for _ in 1..=self.initial_threads {
             let crawler = self.crawler_chan.clone();
