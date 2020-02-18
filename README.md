@@ -8,7 +8,30 @@
 finde-rs
 --------
 
-This is a CLI tool written in Rust, which indexes the directory with a multi-threaded crawler.
+This is a CLI tool written in Rust, which indexes the 'directory' with a multi-threaded crawler. It has been designed
+to be generic in nature, currently, filesystem implementation exists. In future, anything that can be decomposed into
+'directories' (items to be crawled) and 'files' (contents of 'directories') can be added by implementing the Resource interface:
+
+```rust
+
+pub enum Response<T> {
+    DirFileResponse { dirs: Vec<T>, files: Vec<String> },
+}
+
+trait Resource<T: FromStr + Send + Sync>: Send + Sync {
+    /// Return the directories and leaves for this resource
+    fn get_dirs_and_leaves(&self, path: &T) -> Response<T>;
+
+    /// Get the path representation of the resource.
+    fn get_path(&self) -> Result<T>;
+}
+
+```
+
+A filesystem implementation  of this exists in fileresource.rs for input patterns starting with '/'.
+
+
+#### Dependencies
 It uses [crossbeam](https://github.com/crossbeam-rs/crossbeam) for channels, [threadpool](https://github.com/rust-threadpool/rust-threadpool)
 library for threadpool support and finally, [tantivy](https://github.com/tantivy-search/tantivy) for full-text indexing support.
 

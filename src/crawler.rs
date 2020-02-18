@@ -1,15 +1,20 @@
-use crate::constants::INIT_THREADS;
+use crate::constants::{CHAN_TIMEOUT_S, INIT_THREADS};
 use crate::haslen::HasLen;
+
 use crate::indexer;
 use crate::resource::Resource;
 use crate::scheduler;
 use anyhow::{anyhow, Context, Result};
+use crossbeam::channel::select;
+use log::{debug, info, trace};
+
+use crate::resource::Response;
 use crossbeam::channel::unbounded;
 use crossbeam::channel::{Receiver, Sender};
-use log::info;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 use threadpool::ThreadPool;
 
 use std::marker::{Send, Sync};
@@ -21,7 +26,7 @@ impl<T: Send + 'static> HasLen for Receiver<T> {
 }
 
 // #[derive(Debug)]
-pub struct Crawler<T: FromStr + Send + Sync + 'static> {
+pub struct Crawler<T: FromStr + Send + Sync + std::fmt::Debug + 'static> {
     pool: ThreadPool,
     crawler_chan: Sender<T>,
     processor_chan: Receiver<T>,
@@ -31,7 +36,7 @@ pub struct Crawler<T: FromStr + Send + Sync + 'static> {
     index_dir: String,
 }
 
-impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
+impl<T: FromStr + Send + Sync + std::fmt::Debug + 'static> Crawler<T> {
     pub fn new(
         _resource: Box<dyn Resource<T>>,
         _initial_threads: Option<usize>,
@@ -70,6 +75,56 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
         scheduler::run(pool_t, processor_t, self.initial_threads, self.max_threads)
     }
 
+    fn recv_from_channel_with_timeout(receiver: &Receiver<T>, timeout: u64) -> Result<Option<T>> {
+        select! {
+            recv(receiver) -> msg => {
+                let message = msg?;
+                Ok(Some(message))
+
+            },
+            default(Duration::from_secs(timeout)) => Ok(None),
+        }
+    }
+
+    fn crawl_this(
+        sender: Sender<T>,
+        receiver: Receiver<T>,
+        result: Sender<String>,
+        resource: Arc<Box<dyn Resource<T>>>,
+    ) -> Result<()> {
+        let mut root: T;
+        let whoami: String = format!("{:?}", thread::current().id());
+        debug!("Crawling in thread {}", whoami);
+
+        let mut response: Response<T>;
+
+        loop {
+            let _root = Crawler::recv_from_channel_with_timeout(&receiver, CHAN_TIMEOUT_S)?;
+
+            root = match _root {
+                Some(x) => x,
+                None => {
+                    info!("Crawling done in {}, leaving, bye!", whoami);
+                    return Ok(());
+                }
+            };
+
+            response = resource.get_dirs_and_leaves(&root);
+            match response {
+                Response::DirFileResponse { dirs, files } => {
+                    for dir in dirs.into_iter() {
+                        sender.send(dir)?;
+                    }
+                    for fil in files.into_iter() {
+                        result.send(fil)?;
+                    }
+                } // _ => return Err(anyhow!("Unsupported responses received {:?}", response)),
+            }
+
+            trace!("{:?} crawling {:?}", whoami, root);
+        }
+    }
+
     pub fn run(&self) -> Result<()> {
         let path = self.resource.get_path()?;
 
@@ -83,8 +138,7 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
             let results = file_chan.clone();
             let resource = self.resource.clone();
             self.pool.execute(move || {
-                resource
-                    .crawl_this(crawler, processor, results)
+                Crawler::crawl_this(crawler, processor, results, resource)
                     .expect("Thread creation failed");
             });
         }
@@ -111,5 +165,35 @@ impl<T: FromStr + Send + Sync + 'static> Crawler<T> {
             ));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::crawler::Crawler;
+    use crossbeam::channel::{unbounded, Receiver, Sender};
+    use std::path::PathBuf;
+
+    #[should_panic]
+    #[test]
+    fn test_root_from_disconnected_channel() {
+        let (_, empty_receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+
+        let _ =
+            Crawler::recv_from_channel_with_timeout(&empty_receiver, 0).expect("Failed to read");
+        ()
+    }
+
+    #[test]
+    fn test_root_from_channel() {
+        let (sender, receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+        let _ = sender.send(PathBuf::from("TESTM"));
+
+        let mut root_path = Crawler::recv_from_channel_with_timeout(&receiver, 100);
+        assert_eq!(root_path.unwrap(), Some(PathBuf::from("TESTM".to_string())));
+
+        root_path = Crawler::recv_from_channel_with_timeout(&receiver, 1);
+        assert_eq!(root_path.unwrap(), None)
     }
 }

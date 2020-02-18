@@ -1,15 +1,14 @@
 use anyhow::Result;
-use crossbeam::channel::{Receiver, Sender};
 use std::str::FromStr;
-// use std::clone::Clone;
 
 use std::marker::{Send, Sync};
+
+#[derive(Debug)]
+pub enum Response<T> {
+    DirFileResponse { dirs: Vec<T>, files: Vec<String> },
+}
+
 pub trait Resource<T: FromStr + Send + Sync>: Send + Sync {
-    fn crawl_this(
-        &self,
-        sender: Sender<T>,
-        receiver: Receiver<T>,
-        result: Sender<String>,
-    ) -> Result<()>;
+    fn get_dirs_and_leaves(&self, path: &T) -> Response<T>;
     fn get_path(&self) -> Result<T>;
 }
