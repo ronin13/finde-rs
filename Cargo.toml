@@ -24,7 +24,7 @@ travis-ci = { repository = "ronin13/finde-rs" }
 walkdir = "2.3.1"
 crossbeam = "0.7.3"
 tantivy = "0.11.3"
-anyhow = "1.0.26"
+anyhow = "1.0.36"
 structopt = "0.3.9"
 clap-verbosity-flag = "0.3.1"
 log = "0.4.8"
