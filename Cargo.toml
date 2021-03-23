@@ -21,7 +21,7 @@ travis-ci = { repository = "ronin13/finde-rs" }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-walkdir = "2.3.1"
+walkdir = "2.3.2"
 crossbeam = "0.7.3"
 tantivy = "0.11.3"
 anyhow = "1.0.26"
